@@ -1,7 +1,14 @@
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 int32_t main() {
-    std::cout << "Hello, world!\n";
+    std::string input;
+    while(true) {
+        std::cout << "> ";
+        if(!std::getline(std::cin, input)) break;
+        if(input.empty()) continue;
+        std::cout << input << '\n';
+    }
     return 0;
 }

@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <stack>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -18,32 +20,55 @@ Machine::Machine() {
 }
 
 void Machine::execute(const std::string_view input) {
-    for(size_t i = 0; i < input.length(); i++) {
+    std::stack<int16_t> jumps;
+    for(int16_t i = 0; i < static_cast<int16_t>(input.length()); i++) {
         auto& head = this->tape[address_pointer];
         switch(input.at(i)) {
-            case '+': {
+            case '+': { // increment the current cell
                 head++;
             } break;
-            case '-': {
+            case '-': { // decrement the current cell
                 head--;
             } break;
-            case '>': {
+            case '>': { // move to the cell on the right
                 this->address_pointer++;
                 if(this->address_pointer > static_cast<int16_t>(sizeof this->tape)) throw std::runtime_error("the cell pointer has overflowed");
             } break;
-            case '<': {
+            case '<': { // move to the cell on the left
                 this->address_pointer--;
                 if(this->address_pointer < 0) throw std::runtime_error("the cell pointer has underflowed");
             } break;
-            case '.': {
+            case '.': { // output the value of the current cell
                 std::putchar(head);
             } break;
-            case ',': {
+            case ',': { // replace the value of the current cell with the first byte of the user input
                 const int8_t byte = std::getchar();
                 std::getchar(); // consume the newline
                 head = (byte != EOF) ? byte : 0;
             } break;
-            default: std::unreachable();
+            case '[': { // jump to the matching ']' if the value of the current cell is zero
+                if(head != 0) continue;
+                for(int16_t j = i; j < static_cast<int16_t>(input.length()); j++) {
+                    if(input.at(j) == '[') jumps.push(j);
+                    if(input.at(j) != ']') continue;
+                    jumps.pop();
+                    i = j - 1;
+                    if(jumps.empty()) break;
+                }
+                if(!jumps.empty()) throw std::runtime_error("unbalanced jump");
+            } break;
+            case ']': { // jump to the matching '[' if the value of the current cell is non-zero
+                if(head == 0) continue;
+                for(int16_t j = i; j >= 0; j--) {
+                    if(input.at(j) == ']') jumps.push(j);
+                    if(input.at(j) != '[') continue;
+                    jumps.pop();
+                    i = j - 1;
+                    if(jumps.empty()) break;
+                }
+                if(!jumps.empty()) throw std::runtime_error("unbalanced jump");
+            } break;
+            default: continue;
         }
     }
 }

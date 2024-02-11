@@ -19,6 +19,18 @@ Machine::Machine() {
     std::memset(this->tape, 0, sizeof this->tape);
 }
 
+void print_error(const std::string_view input, const int16_t previous) {
+    std::cerr << "\033[31m" << "error: " << "\033[0m" << "jump expected a match\n";
+    std::cerr << '\t';
+    for(int16_t i = 0; i < static_cast<int16_t>(input.length()); i++) {
+        if(i == previous) std::cerr << "\033[31m" << input.at(i) << "\033[0m";
+        else              std::cerr << input.at(i);
+    }
+    std::cerr << "\n\t";
+    for(int16_t i = 0; i < previous; i++) std::cerr << ' ';
+    std::cerr << "^ here\n";
+}
+
 void Machine::execute(const std::string_view input) {
     std::stack<int16_t> jumps;
     for(int16_t i = 0; i < static_cast<int16_t>(input.length()); i++) {
@@ -47,26 +59,36 @@ void Machine::execute(const std::string_view input) {
                 head = (byte != EOF) ? byte : 0;
             } break;
             case '[': { // jump to the matching ']' if the value of the current cell is zero
-                if(head != 0) continue;
+                int16_t next_index = 0;
+                const auto previous_index = i;
                 for(int16_t j = i; j < static_cast<int16_t>(input.length()); j++) {
                     if(input.at(j) == '[') jumps.push(j);
                     if(input.at(j) != ']') continue;
                     jumps.pop();
-                    i = j - 1;
+                    next_index = j - 1;
                     if(jumps.empty()) break;
                 }
-                if(!jumps.empty()) throw std::runtime_error("unbalanced jump");
+                if(!jumps.empty()) {
+                    print_error(input, previous_index);
+                    return;
+                }
+                if(head == 0) i = next_index;
             } break;
             case ']': { // jump to the matching '[' if the value of the current cell is non-zero
-                if(head == 0) continue;
+                int16_t next_index = 0;
+                const auto previous_index = i;
                 for(int16_t j = i; j >= 0; j--) {
                     if(input.at(j) == ']') jumps.push(j);
                     if(input.at(j) != '[') continue;
                     jumps.pop();
-                    i = j - 1;
+                    next_index = j - 1;
                     if(jumps.empty()) break;
                 }
-                if(!jumps.empty()) throw std::runtime_error("unbalanced jump");
+                if(!jumps.empty()) {
+                    print_error(input, previous_index);
+                    return;
+                }
+                if(head != 0) i = next_index;
             } break;
             default: continue;
         }

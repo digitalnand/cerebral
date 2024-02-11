@@ -3,19 +3,15 @@ CXXFLAGS := -std=c++23 -Wall -Wextra -Wpedantic -Werror -O2
 SRC_DIR := src
 BIN_DIR := bin
 
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(BIN_DIR)/%.o,$(SRCS))
-TARGET := $(BIN_DIR)/cbl
+SRCS := $(SRC_DIR)/main.cpp
+TARGET := $(BIN_DIR)/crbl
 
 all: $(TARGET)
 
 $(BIN_DIR):
 	@mkdir -p $(BIN_DIR)
 
-$(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(TARGET): $(OBJS)
+$(TARGET): $(SRCS) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 clean:

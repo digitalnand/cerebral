@@ -1,3 +1,4 @@
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -7,33 +8,35 @@
 #include <string>
 #include <utility>
 
-struct Machine {
-    int8_t tape[3000];
-    int16_t address_pointer;
-    Machine();
+namespace crbl {
+
+struct Interpreter {
+    std::array<int32_t, 0xfff> tape;
+    int32_t address_pointer;
+    Interpreter();
     void execute(const std::string_view);
 };
 
-Machine::Machine() {
+Interpreter::Interpreter() {
+    this->tape.fill(0);
     this->address_pointer = 0;
-    std::memset(this->tape, 0, sizeof this->tape);
 }
 
-void print_error(const std::string_view input, const int16_t previous) {
+void display_jump_error(const std::string_view input, const int32_t position) {
     std::cerr << "\033[31m" << "error: " << "\033[0m" << "jump expected a match\n";
     std::cerr << '\t';
-    for(int16_t i = 0; i < static_cast<int16_t>(input.length()); i++) {
-        if(i == previous) std::cerr << "\033[31m" << input.at(i) << "\033[0m";
+    for(int32_t i = 0; i < static_cast<int32_t>(input.length()); i++) {
+        if(i == position) std::cerr << "\033[31m" << input.at(i) << "\033[0m";
         else              std::cerr << input.at(i);
     }
     std::cerr << "\n\t";
-    for(int16_t i = 0; i < previous; i++) std::cerr << ' ';
+    for(int32_t i = 0; i < position; i++) std::cerr << ' ';
     std::cerr << "^ here\n";
 }
 
-void Machine::execute(const std::string_view input) {
-    std::stack<int16_t> jumps;
-    for(int16_t i = 0; i < static_cast<int16_t>(input.length()); i++) {
+void Interpreter::execute(const std::string_view input) {
+    std::stack<int32_t> jumps;
+    for(int32_t i = 0; i < static_cast<int32_t>(input.length()); i++) {
         auto& head = this->tape[address_pointer];
         switch(input.at(i)) {
             case '+': { // increment the current cell
@@ -44,11 +47,13 @@ void Machine::execute(const std::string_view input) {
             } break;
             case '>': { // move to the cell on the right
                 this->address_pointer++;
-                if(this->address_pointer > static_cast<int16_t>(sizeof this->tape)) throw std::runtime_error("the cell pointer has overflowed");
+                if(this->address_pointer > static_cast<int32_t>(sizeof this->tape))
+                    throw std::runtime_error("the cell pointer has overflowed");
             } break;
             case '<': { // move to the cell on the left
                 this->address_pointer--;
-                if(this->address_pointer < 0) throw std::runtime_error("the cell pointer has underflowed");
+                if(this->address_pointer < 0)
+                    throw std::runtime_error("the cell pointer has underflowed");
             } break;
             case '.': { // output the value of the current cell
                 std::putchar(head);
@@ -59,9 +64,9 @@ void Machine::execute(const std::string_view input) {
                 head = (byte != EOF) ? byte : 0;
             } break;
             case '[': { // jump to the matching ']' if the value of the current cell is zero
-                int16_t next_index = 0;
+                int32_t next_index = 0;
                 const auto previous_index = i;
-                for(int16_t j = i; j < static_cast<int16_t>(input.length()); j++) {
+                for(int32_t j = i; j < static_cast<int32_t>(input.length()); j++) {
                     if(input.at(j) == '[') jumps.push(j);
                     if(input.at(j) != ']') continue;
                     jumps.pop();
@@ -69,15 +74,15 @@ void Machine::execute(const std::string_view input) {
                     if(jumps.empty()) break;
                 }
                 if(!jumps.empty()) {
-                    print_error(input, previous_index);
+                    display_jump_error(input, previous_index);
                     return;
                 }
                 if(head == 0) i = next_index;
             } break;
             case ']': { // jump to the matching '[' if the value of the current cell is non-zero
-                int16_t next_index = 0;
+                int32_t next_index = 0;
                 const auto previous_index = i;
-                for(int16_t j = i; j >= 0; j--) {
+                for(int32_t j = i; j >= 0; j--) {
                     if(input.at(j) == ']') jumps.push(j);
                     if(input.at(j) != '[') continue;
                     jumps.pop();
@@ -85,7 +90,7 @@ void Machine::execute(const std::string_view input) {
                     if(jumps.empty()) break;
                 }
                 if(!jumps.empty()) {
-                    print_error(input, previous_index);
+                    display_jump_error(input, previous_index);
                     return;
                 }
                 if(head != 0) i = next_index;
@@ -95,8 +100,10 @@ void Machine::execute(const std::string_view input) {
     }
 }
 
+} // end of namespace crbl
+
 int32_t main() {
-    Machine interpreter;
+    crbl::Interpreter interpreter;
     std::string input;
     do {
         if(!input.empty()) interpreter.execute(input);

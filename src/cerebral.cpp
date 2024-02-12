@@ -2,7 +2,7 @@
 #include <iostream>
 #include <stack>
 
-#include "cerebral.h"
+#include "cerebral.hpp"
 
 namespace crbl {
 
@@ -94,7 +94,7 @@ void Machine::dump(std::ifstream& file) {
 
 void Machine::execute() {
     for(int32_t i = 0; i < static_cast<int32_t>(this->instructions.size()); i++) {
-        const auto& instruction = instructions.at(i);
+        const auto& instruction = this->instructions.at(i);
         auto& head = this->tape[address_pointer];
         switch(instruction.kind) {
             case INCREMENT: {

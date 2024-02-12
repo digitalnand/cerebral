@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "cerebral.h"
+#include "cerebral.hpp"
 
 int32_t main(int32_t argc, char* argv[]) {
     if(argc < 2) {
